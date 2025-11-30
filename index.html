@@ -595,7 +595,7 @@
         if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     // パスを修正しました
-    navigator.serviceWorker.register('sw.js')
+    navigator.serviceWorker.register('sw.js', {scope: './'})
       .then(registration => {
         // 登録成功
       })
