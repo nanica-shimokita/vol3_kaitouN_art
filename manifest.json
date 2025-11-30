@@ -1,0 +1,11 @@
+{
+  "name": "怪盗Nと美術館だらけの町",
+  "short_name": "怪盗NプレイAPP",
+  "start_url": "/index.html",
+  "display": "standalone", // アドレスバーなどを非表示にし、ネイティブアプリのように表示
+  "background_color": "#ffffff",
+  "theme_color": "#000000",
+  "icons": [
+    // 複数サイズのアイコンを定義（iOSは特に高解像度アイコンを推奨）
+  ]
+}
