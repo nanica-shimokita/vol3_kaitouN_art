@@ -1,1 +1,594 @@
+<!DOCTYPE html><html lang="ja"><head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>怪盗Nと美術館だらけの町</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        html{font-family:'Inter',sans-serif}
+        #hidden-reset-area {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 10%;
+            height: 100%;
+            z-index: 100;
+        }
+        /* カスタムモーダルのためのスタイル */
+        .modal {
+            display: none; /* 初期状態では非表示 */
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+            backdrop-filter: blur(2px);
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: auto;
+            padding: 24px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+    </style>
+</head>
+<body class="bg-amber-50 min-h-screen flex items-center justify-center p-4">
+    
+    <div id="hidden-reset-area" onclick="onHiddenResetTap()"></div>
 
+    <div id="app" class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-xl lg:max-w-5xl relative">
+        
+        <div id="real-chute-registration" class="hidden space-y-6">
+            <h2 class="text-2xl font-bold mb-4 text-center text-green-700">リアルチュート・ミュージアム結果</h2>
+            <p class="text-center text-gray-600">クリア状況を選択してください。スコアに加算されます。</p>
+            <div class="grid grid-cols-2 gap-4">
+                <button onclick="registerRealChuteResult(true)" class="py-6 bg-green-500 text-white font-bold rounded-lg hover:bg-green-600 transition duration-150 shadow-md">成功 (+10 Pt)</button>
+                <button onclick="registerRealChuteResult(false)" class="py-6 bg-red-500 text-white font-bold rounded-lg hover:bg-red-600 transition duration-150 shadow-md">失敗 (0 Pt)</button>
+            </div>
+            <p id="real-chute-message" class="text-center text-sm text-gray-500 min-h-[1.5rem] mt-4 hidden"></p>
+        </div>
+        
+        <div id="initial-level-setup" class="hidden space-y-4">
+            <h2 class="text-2xl font-bold mb-4 text-center text-gray-800">目標タイム設定</h2>
+            <div id="setup-list" class="space-y-6"></div>
+            <button id="start-game-button" onclick="finalizeSetup()" class="w-full py-4 bg-slate-700 text-white font-semibold rounded-lg hover:bg-slate-800 transition duration-150 shadow-md" disabled>設定する</button>
+        </div>
+
+        <div id="museum-selection" class="hidden space-y-4">
+            <p class="text-gray-600 text-center text-lg font-semibold" id="selection-header">助手が操作します。</p>
+            <div id="museum-list" class="grid grid-cols-2 gap-4"></div>
+            
+            <div id="hidden-tap-area" class="hidden mt-6 w-full py-3 border border-dashed border-transparent transition duration-150 rounded-lg cursor-pointer">
+            </div>
+        </div>
+
+        <div id="game-play" class="hidden text-center">
+            <div class="mb-3 flex justify-between items-center">
+                <p class="text-base text-gray-500 font-medium">難易度: <span id="current-level-display" class="font-bold text-gray-800"></span></p>
+                <h2 id="current-museum-title" class="text-xl font-bold text-gray-800"></h2>
+            </div>
+
+            <div id="target-time-area" class="text-xl font-extrabold text-red-700 mb-3 py-1 rounded-lg">
+                目標タイム: <span id="target-time-display" class="font-bold">--:--</span>
+            </div>
+
+            <div class="text-7xl font-extrabold text-indigo-800 mb-4 p-6 bg-indigo-100 rounded-xl shadow-lg">
+                <span id="timer-display">00:00.00</span>
+            </div>
+
+            <button id="start-button" onclick="startTimer()" class="w-full py-5 text-white font-bold rounded-xl shadow-lg transition duration-150 bg-green-600 hover:bg-green-700">スタート</button>
+            
+            <div id="answer-area" class="hidden mt-6 space-y-3">
+                <input type="text" id="answer-input" placeholder="正解のキーワードを入力..." class="w-full p-4 border-2 border-indigo-300 rounded-lg text-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" disabled>
+                <button id="answer-button" onclick="checkAnswer()" class="w-full py-4 text-white font-bold rounded-xl shadow-lg transition duration-150 bg-red-600 hover:bg-red-700" disabled>解答する</button>
+            </div>
+
+            <div id="muuru-controls" class="hidden mt-6 space-y-3">
+                <button id="pause-button" onclick="toggleTimer()" class="w-full py-4 text-white font-bold rounded-xl shadow-lg transition duration-150 bg-yellow-600 hover:bg-yellow-700">一時停止</button>
+                <button id="clear-button" onclick="clearMuseum()" class="w-full py-4 text-white font-bold rounded-xl shadow-lg transition duration-150 bg-red-600 hover:bg-red-700" disabled>クリア</button>
+            </div>
+
+            <p id="message-area" class="mt-4 text-sm text-gray-500 min-h-[1.5rem]"></p>
+            
+            <button id="back-button" onclick="handleBackToSelection()" class="mt-4 w-full py-3 text-indigo-500 border border-indigo-500 rounded-lg hover:bg-indigo-50 transition duration-150 text-sm font-semibold">
+                戻る
+            </button>
+        </div>
+
+        <div id="result-screen" class="hidden">
+            <h2 class="text-2xl font-bold mb-4 text-center text-indigo-700" id="result-title">クリア結果！</h2>
+            
+            <div class="space-y-4 mb-6 p-6 bg-indigo-100 rounded-xl shadow-lg border-2 border-indigo-400">
+                <div class="p-2 bg-white rounded-lg shadow-sm">
+                    <p class="text-lg font-semibold text-gray-700 text-center">難易度:</p>
+                    <p id="result-level" class="font-bold text-indigo-600 text-3xl text-center"></p>
+                </div>
+                <div class="p-2 bg-red-50 rounded-lg shadow-sm border-2 border-red-200">
+                    <p class="text-lg font-semibold text-red-700 text-center">目標タイム:</p>
+                    <p id="target-time-result" class="font-bold text-red-600 text-3xl text-center"></p>
+                </div>
+                <div class="p-2 bg-white rounded-lg shadow-sm">
+                    <p class="text-lg font-semibold text-gray-700 text-center">タイム:</p>
+                    <p id="museum-time-result" class="font-bold text-indigo-600 text-5xl text-center"></p>
+                </div>
+            </div>
+
+            <button onclick="showSelectionScreen()" class="mt-6 w-full py-3 bg-slate-700 text-white font-semibold rounded-lg hover:bg-slate-800 transition duration-150 shadow-md">戻る</button>
+        </div>
+
+        <div id="staff-screen" class="hidden">
+            <h2 class="2xl font-bold mb-4 text-center text-green-700">スタッフ操作画面</h2>
+            <div class="p-4 bg-gray-100 rounded-lg shadow-inner mb-6">
+                <p class="text-xl font-bold text-gray-800">最終スコア: <span id="staff-total-score" class="text-indigo-600 text-3xl">0 Pt</span></p>
+                <p class="text-md font-bold text-gray-800 mt-2">追加加算: <span id="total-bonus-display" class="text-green-600 text-3xl">0 Pt</span></p>
+            </div>
+            <h3 class="font-semibold text-gray-700 mb-2">追加加算:</h3>
+            <div id="bonus-list" class="space-y-3 mb-6"></div>
+            
+            <!-- 変更点: onResetClick() を呼び出すように変更 -->
+            <button onclick="onResetClick()" class="w-full py-3 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition duration-150 shadow-md">ゲームを完全にリセット</button>
+
+            <button onclick="showSelectionScreen()" class="mt-4 w-full py-3 bg-slate-700 text-white font-semibold rounded-lg hover:bg-slate-800 transition duration-150 shadow-md">戻る</button>
+        </div>
+    </div>
+    
+    <!-- 2段階確認用モーダル -->
+    <div id="reset-modal" class="modal">
+        <div class="modal-content">
+            <h3 class="text-xl font-bold text-red-600 mb-4">警告</h3>
+            <p class="text-gray-700 mb-6">本当にゲームの全データをリセットしますか？<br>この操作は取り消せません。</p>
+            <div class="flex justify-center space-x-4">
+                <button onclick="confirmReset(true)" class="px-6 py-3 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition duration-150 shadow-md">はい、リセットする</button>
+                <button onclick="confirmReset(false)" class="px-6 py-3 bg-gray-300 text-gray-800 font-semibold rounded-lg hover:bg-gray-400 transition duration-150 shadow-md">いいえ、キャンセル</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const CD = {
+            S: ['クイン・ミュージアム', 'パルズ・ミュージアム', 'ムール・ミュージアム', 'ロリン・ミュージアム'],
+            B: [{ name: 'リアルチュートクリア', points: 10 }, { name: '成功', points: 50 }, { name: 'エクストラ成功', points: 20 }],
+            A: {
+                'クイン・ミュージアム': ['トマトスープ', 'とまとすーぷ'],
+                'パルズ・ミュージアム': ['MUSEUM', 'museum', 'ミュージアム', 'みゅーじあむ'],
+                'ムール・ミュージアム': ['ムール', 'むーる'],
+                'ロリン・ミュージアム': ['推論', 'すいろん', 'スイロン']
+            },
+            L: {
+                'Slow': { mult: 1.0, points: 6, color: 'bg-gray-200 text-gray-800', hover: 'hover:bg-gray-300' },
+                'Normal': { mult: 1.5, points: 8, color: 'bg-gray-200 text-gray-800', hover: 'hover:bg-gray-300' },
+                'Quick': { mult: 2.0, points: 10, color: 'bg-gray-200 text-gray-800', hover: 'hover:bg-gray-300' }
+            },
+            M: {
+                'クイン・ミュージアム': { mainBg: 'bg-red-700', lightBg: 'bg-red-500', text: 'text-red-700', buttonBg: 'bg-red-700', buttonHover: 'hover:bg-red-800', buttonText: 'text-white', accent: 'border-red-700' },
+                'パルズ・ミュージアム': { mainBg: 'bg-blue-800', lightBg: 'bg-blue-600', text: 'text-blue-800', buttonBg: 'bg-blue-800', buttonHover: 'hover:bg-blue-900', buttonText: 'text-white', accent: 'border-blue-800' },
+                'ムール・ミュージアム': { mainBg: 'bg-yellow-600', lightBg: 'bg-yellow-500', text: 'text-yellow-600', buttonBg: 'bg-yellow-600', buttonHover: 'hover:bg-yellow-700', buttonText: 'text-white', accent: 'border-yellow-600' },
+                'ロリン・ミュージアム': { mainBg: 'bg-green-700', lightBg: 'bg-green-500', text: 'text-green-700', buttonBg: 'bg-green-700', buttonHover: 'hover:bg-green-800', buttonText: 'text-white', accent: 'border-green-700' }
+            },
+            T: {
+                'クイン・ミュージアム': { 'Slow': 12000, 'Normal': 10000, 'Quick': 8000 },
+                'パルズ・ミュージアム': { 'Slow': 11000, 'Normal': 9000, 'Quick': 7000 },
+                'ムール・ミュージアム': { 'Slow': 13000, 'Normal': 11000, 'Quick': 9000 },
+                'ロリン・ミュージアム': { 'Slow': 15000, 'Normal': 13000, 'Quick': 11000 }
+            },
+            P: {
+                'クイン・ミュージアム': '作品名を入力...',
+                'パルズ・ミュージアム': '最後の答えを入力...',
+                'ロリン・ミュージアム': '合言葉を入力...'
+            },
+            I: ['museum-selection', 'game-play', 'result-screen', 'staff-screen', 'initial-level-setup', 'real-chute-registration'],
+        };
+        
+        const STORAGE_KEY = 'kaitoN_game_state';
+        let state;
+        const ids = {
+            timerDisplay:'timer-display',currentLevelDisplay:'current-level-display',currentMuseumTitle:'current-museum-title',startButton:'start-button',
+            answerArea:'answer-area',answerInput:'answer-input',answerButton:'answer-button',messageArea:'message-area',museumList:'museum-list',
+            hiddenTapArea:'hidden-tap-area',setupList:'setup-list',startGameButton:'start-game-button',bonusList:'bonus-list',resultTitle:'result-title',
+            resultLevel:'result-level',museumTimeResult:'museum-time-result',targetTimeDisplay:'target-time-display',targetTimeResult:'target-time-result',
+            muuruControls:'muuru-controls',pauseButton:'pause-button',clearButton:'clear-button',backButton:'back-button',staffTotalScore:'staff-total-score',
+            totalBonusDisplay:'total-bonus-display',selectionHeader:'selection-header', resetModal:'reset-modal' // モーダルIDを追加
+        };
+
+        const ELEMENTS = CD.I.reduce((acc, id) => ({ ...acc, [id]: document.getElementById(id) }), {});
+        Object.keys(ids).forEach(key => ELEMENTS[key] = document.getElementById(ids[key]));
+        ELEMENTS.hiddenResetArea = document.getElementById('hidden-reset-area');
+        
+        const formatTime = ms => {
+            const [m, s, cs] = [Math.floor(ms / 60000), Math.floor((ms % 60000) / 1000), Math.floor((ms % 1000) / 10)];
+            return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}.${String(cs).padStart(2, '0')}`;
+        };
+        
+        const showScreen = screenId => {
+            CD.I.forEach(id => ELEMENTS[id].classList.add('hidden'));
+            ELEMENTS[screenId]?.classList.remove('hidden');
+        };
+
+        const saveState = () => {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+            } catch (e) {
+                console.error('Failed to save state to localStorage:', e);
+            }
+        };
+
+        const loadState = () => {
+            try {
+                const serializedState = localStorage.getItem(STORAGE_KEY);
+                if (serializedState === null) return null;
+                return JSON.parse(serializedState);
+            } catch (e) {
+                console.error('Failed to load state from localStorage:', e);
+                return null;
+            }
+        };
+
+        const calculateTotalScore = () => {
+            const totalMuseumScore = Object.values(state.clearedData).reduce((sum, data) => sum + data.score, 0);
+            const calculatedBonus = CD.B.reduce((sum, item) => sum + (state.bonusState[item.name] ? item.points : 0), 0);
+            return { totalMuseumScore, calculatedBonus, finalScore: totalMuseumScore + calculatedBonus };
+        };
+
+        window.registerRealChuteResult = (isSuccess) => {
+            state.bonusState['リアルチュートクリア'] = isSuccess;
+            saveState(); // 状態を保存
+            renderInitialSetup();
+        };
+
+        function updateLevelButtonUI(museumName, selectedLevel) {
+            Object.keys(CD.L).forEach(levelName => {
+                const button = document.getElementById(`btn-${museumName}-${levelName}`);
+                if (!button) return;
+                const isSelected = levelName === selectedLevel;
+                button.classList.toggle('ring-4', isSelected);
+                button.classList.toggle('ring-offset-2', isSelected);
+                button.classList.toggle('ring-slate-700', isSelected);
+                if (!isSelected) button.classList.remove('ring-4', 'ring-offset-2', 'ring-slate-700');
+            });
+        }
+
+        function updateFinalizeButtonState() {
+            const allSet = Object.keys(state.fixedLevels).length === CD.S.length;
+            ELEMENTS.startGameButton.disabled = !allSet;
+            const classList = ELEMENTS.startGameButton.classList;
+            classList.toggle('bg-slate-700', allSet);
+            classList.toggle('hover:bg-slate-800', allSet);
+            classList.toggle('bg-gray-400', !allSet);
+            classList.remove('hidden');
+        }
+
+        window.setMuseumLevel = (museumName, levelName, multiplier) => {
+            state.fixedLevels[museumName] = { level: levelName, multiplier, timeLimitMs: CD.T[museumName][levelName] };
+            updateLevelButtonUI(museumName, levelName);
+            updateFinalizeButtonState();
+            saveState(); // 状態を保存
+        };
+
+        function renderInitialSetup() {
+            ELEMENTS.setupList.innerHTML = '';
+            CD.S.forEach(museumName => {
+                const colors = CD.M[museumName];
+                const buttonsHtml = Object.keys(CD.L).map(levelName => {
+                    const level = CD.L[levelName];
+                    return `<button id="btn-${museumName}-${levelName}" onclick="setMuseumLevel('${museumName}','${levelName}',${level.mult})" class="flex-1 py-2 text-sm font-semibold rounded-md transition duration-150 ${level.color} ${level.hover}">${levelName}</button>`;
+                }).join('');
+                const html = `<div class="p-4 border-2 ${colors.accent} rounded-lg shadow-md bg-white"><h3 class="font-bold text-gray-800 mb-3">${museumName}</h3><div class="flex gap-2">${buttonsHtml}</div></div>`;
+                ELEMENTS.setupList.insertAdjacentHTML('beforeend', html);
+                if (state.fixedLevels[museumName]) updateLevelButtonUI(museumName, state.fixedLevels[museumName].level);
+            });
+            updateFinalizeButtonState();
+            showScreen('initial-level-setup');
+        }
+
+        window.finalizeSetup = () => {
+            if (Object.keys(state.fixedLevels).length === CD.S.length) showSelectionScreen();
+        };
+
+        window.onHiddenResetTap = () => {
+            state.staffTapCount++;
+            if (state.staffTapCount >= 5) { showStaffScreen(); state.staffTapCount = 0; }
+        };
+
+        window.showSelectionScreen = () => {
+            if (Object.keys(state.fixedLevels).length !== CD.S.length) { renderInitialSetup(); return; }
+            ELEMENTS.museumList.innerHTML = '';
+            let allCleared = true;
+            
+            CD.S.forEach(museumName => {
+                const clearedInfo = state.clearedData[museumName];
+                const fixedLevelInfo = state.fixedLevels[museumName];
+                const cleared = !!clearedInfo;
+                if (!cleared) allCleared = false;
+                
+                let statusText, statusIcon = '', buttonClass; 
+                const colors = CD.M[museumName];
+
+                if (cleared) {
+                    const resultText = clearedInfo.isSuccess ? 'クリア' : '失敗';
+                    statusText = `(${clearedInfo.level}で${resultText})`;
+                    if (clearedInfo.isSuccess) {
+                        statusIcon = '✔ ';
+                        buttonClass = 'bg-green-100 text-green-800 hover:bg-green-200 border border-green-300';
+                    } else {
+                        statusIcon = '✖ ';
+                        buttonClass = 'bg-red-100 text-red-800 hover:bg-red-200 border border-red-300';
+                    }
+                } else {
+                    statusText = `(${fixedLevelInfo.level}で挑戦)`;
+                    buttonClass = `${colors.buttonBg} ${colors.buttonText} ${colors.buttonHover}`;
+                }
+
+                const action = cleared 
+                    ? `showResultScreen(${clearedInfo.score},${clearedInfo.timeMs},'${museumName}','${clearedInfo.level}',true, ${clearedInfo.isSuccess}, ${fixedLevelInfo.timeLimitMs})` 
+                    : `startPlay('${museumName}')`;
+                
+                const buttonHtml = `<button class="p-4 font-semibold rounded-lg shadow-md transition duration-150 text-center ${buttonClass}" onclick="${action}">${statusIcon}${museumName}<br><span class="text-sm font-normal">${statusText}</span></button>`;
+                ELEMENTS.museumList.insertAdjacentHTML('beforeend', buttonHtml);
+            });
+            
+            ELEMENTS.selectionHeader.textContent = allCleared 
+                ? `全てのミュージアムの潜入が終わりました。手を挙げて助手を呼びましょう。`
+                : `助手が操作します。`;
+            
+            showScreen('museum-selection');
+        };
+
+        function updateBackButtonState(isDisabled) {
+            ELEMENTS.backButton.disabled = isDisabled;
+            ELEMENTS.backButton.classList.toggle('opacity-50', isDisabled);
+            ELEMENTS.backButton.classList.toggle('cursor-not-allowed', isDisabled);
+        }
+
+        window.handleBackToSelection = () => {
+            if (!state.isRunning || state.elapsedTime > 0 && !state.isRunning) showSelectionScreen();
+            else ELEMENTS.messageArea.textContent = 'タイマーが動作中は戻ることはできません。一時停止してからお戻りください。';
+        };
+
+        function startPlay(museumName) {
+            const levelInfo = state.fixedLevels[museumName];
+            Object.assign(state, {
+                currentMuseum: museumName, currentLevel: levelInfo.level, currentMultiplier: levelInfo.multiplier,
+                timeLimitMs: levelInfo.timeLimitMs, isRunning: false, startTime: 0, elapsedTime: 0, isPaused: false
+            });
+            if (state.timerInterval) clearInterval(state.timerInterval);
+            ELEMENTS.timerDisplay.textContent = formatTime(0);
+            
+            const selectedLevelInfo = CD.L[state.currentLevel];
+            const timeLimit = formatTime(state.timeLimitMs).slice(0, 5); 
+            const colors = CD.M[museumName];
+
+            ELEMENTS.currentLevelDisplay.textContent = `${state.currentLevel}(${selectedLevelInfo.points}pt)`; 
+            ELEMENTS.targetTimeDisplay.textContent = timeLimit;
+            ELEMENTS.currentMuseumTitle.className = `text-xl font-bold ${colors.text}`;
+            ELEMENTS.currentMuseumTitle.textContent = `潜入先:${museumName}`;
+            ELEMENTS.messageArea.textContent = ``; 
+            ELEMENTS.startButton.classList.remove('hidden');
+            
+            const isMuuru = museumName === 'ムール・ミュージアム';
+
+            ELEMENTS.answerArea.classList.toggle('hidden', isMuuru);
+            ELEMENTS.muuruControls.classList.toggle('hidden', !isMuuru);
+
+            if (isMuuru) {
+                ELEMENTS.pauseButton.textContent = '一時停止';
+                ELEMENTS.pauseButton.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+                ELEMENTS.pauseButton.classList.add('bg-yellow-600', 'hover:bg-yellow-700');
+                ELEMENTS.clearButton.disabled = true;
+            } else {
+                ELEMENTS.answerInput.value = ''; ELEMENTS.answerInput.disabled = true; ELEMENTS.answerButton.disabled = true;
+                ELEMENTS.answerInput.placeholder = CD.P[museumName] || '正解のキーワードを入力...';
+            }
+            
+            updateBackButtonState(false);
+            showScreen('game-play');
+        }
+
+        function updateTimer() {
+            if (state.isRunning) {
+                state.elapsedTime = Date.now() - state.startTime;
+                ELEMENTS.timerDisplay.textContent = formatTime(state.elapsedTime);
+            }
+        }
+
+        window.startTimer = () => {
+            if (state.isRunning) return;
+
+            state.isRunning = true; state.isPaused = false;
+            state.startTime = Date.now() - state.elapsedTime;
+
+            if (state.timerInterval) clearInterval(state.timerInterval);
+            state.timerInterval = setInterval(updateTimer, 10);
+            ELEMENTS.messageArea.textContent = ``; 
+            ELEMENTS.startButton.classList.add('hidden');
+            
+            updateBackButtonState(true);
+
+            const isMuuru = state.currentMuseum === 'ムール・ミュージアム';
+            if (isMuuru) {
+                ELEMENTS.muuruControls.classList.remove('hidden');
+                ELEMENTS.clearButton.disabled = false;
+                ELEMENTS.pauseButton.textContent = '一時停止';
+                ELEMENTS.pauseButton.classList.replace('bg-blue-600', 'bg-yellow-600');
+                ELEMENTS.pauseButton.classList.replace('hover:bg-blue-700', 'hover:bg-yellow-700');
+            } else {
+                ELEMENTS.answerArea.classList.remove('hidden');
+                ELEMENTS.answerInput.disabled = false; ELEMENTS.answerButton.disabled = false;
+                ELEMENTS.answerInput.focus();
+            }
+        };
+
+        window.toggleTimer = () => {
+            if (state.currentMuseum !== 'ムール・ミュージアム') return;
+
+            const isPausing = state.isRunning;
+            state.isPaused = isPausing;
+            state.isRunning = !isPausing;
+            
+            if (isPausing) {
+                clearInterval(state.timerInterval);
+                state.timerInterval = null;
+                ELEMENTS.pauseButton.textContent = '再開';
+                ELEMENTS.pauseButton.classList.replace('bg-yellow-600', 'bg-blue-600');
+                ELEMENTS.pauseButton.classList.replace('hover:bg-yellow-700', 'hover:bg-blue-700');
+                updateBackButtonState(false);
+            } else {
+                state.startTime = Date.now() - state.elapsedTime;
+                state.timerInterval = setInterval(updateTimer, 10);
+                ELEMENTS.pauseButton.textContent = '一時停止';
+                ELEMENTS.pauseButton.classList.replace('bg-blue-600', 'bg-yellow-600');
+                ELEMENTS.pauseButton.classList.replace('hover:bg-blue-700', 'hover:bg-yellow-700');
+                updateBackButtonState(true);
+            }
+        };
+        
+        function handleMuseumClear(timeElapsed) {
+            if (state.timerInterval) clearInterval(state.timerInterval);
+            state.isRunning = false;
+            
+            const timeLimitMs = state.timeLimitMs;
+            const isSuccess = timeElapsed <= timeLimitMs;
+            const score = isSuccess ? CD.L[state.currentLevel].points : 4;
+
+            state.clearedData[state.currentMuseum] = {
+                timeMs: timeElapsed, score, level: state.currentLevel, multiplier: state.currentMultiplier, isSuccess
+            };
+            
+            saveState(); // 状態を保存
+            
+            ELEMENTS.startButton.classList.add('hidden');
+            ELEMENTS.answerArea.classList.add('hidden');
+            ELEMENTS.muuruControls.classList.add('hidden');
+            ELEMENTS.messageArea.textContent = '';
+
+            updateBackButtonState(false);
+            
+            showResultScreen(score, timeElapsed, state.currentMuseum, state.currentLevel, false, isSuccess, timeLimitMs);
+        }
+
+        window.clearMuseum = () => {
+            if (state.currentMuseum !== 'ムール・ミュージアム') return;
+            handleMuseumClear(state.elapsedTime);
+        };
+
+        window.checkAnswer = () => {
+            if (!state.isRunning) { ELEMENTS.messageArea.textContent = '先にスタートボタンを押して潜入を開始してください。'; return; }
+            const userAnswer = ELEMENTS.answerInput.value.trim().toLowerCase();
+            const correctAnswers = CD.A[state.currentMuseum];
+            const isCorrect = correctAnswers.some(answer => answer.toLowerCase() === userAnswer);
+
+            if (isCorrect) handleMuseumClear(Date.now() - state.startTime);
+            else { ELEMENTS.messageArea.textContent = '解答が違います。もう一度確認しましょう。'; ELEMENTS.answerInput.value = ''; ELEMENTS.answerInput.focus(); }
+        };
+
+        function showResultScreen(score, timeMs, museumName, levelName, isViewing, isSuccess = true, timeLimitMs) {
+            const timeLimitDisplay = formatTime(timeLimitMs).slice(0, 5); 
+            const resultStatus = isSuccess ? 'クリア成功！' : 'クリア失敗';
+            ELEMENTS.resultTitle.innerHTML = isViewing 
+                ? `${museumName}リザルト` 
+                : `${museumName}${resultStatus}<br><span class="text-xl font-normal text-gray-700">手を挙げて助手を呼びましょう。</span>`;
+            
+            ELEMENTS.resultLevel.textContent = levelName;
+            ELEMENTS.museumTimeResult.textContent = formatTime(timeMs);
+            ELEMENTS.targetTimeResult.textContent = timeLimitDisplay; 
+            showScreen('result-screen');
+        }
+
+        window.toggleBonus = (itemName, isChecked) => {
+            state.bonusState[itemName] = isChecked;
+            const staffCheckbox = document.getElementById(`bonus-check-${itemName}`);
+            if (staffCheckbox) staffCheckbox.checked = isChecked;
+            
+            const { calculatedBonus, finalScore } = calculateTotalScore();
+
+            if (ELEMENTS.staffTotalScore && ELEMENTS.totalBonusDisplay) {
+                ELEMENTS.totalBonusDisplay.textContent = `${calculatedBonus} Pt`;
+                ELEMENTS.staffTotalScore.textContent = `${finalScore} Pt`;
+            }
+            saveState(); // 状態を保存
+        };
+
+        window.showStaffScreen = () => {
+            const { calculatedBonus, finalScore } = calculateTotalScore();
+            
+            ELEMENTS.staffTotalScore.textContent = `${finalScore} Pt`;
+            ELEMENTS.totalBonusDisplay.textContent = `${calculatedBonus} Pt`;
+            ELEMENTS.bonusList.innerHTML = '';
+            
+            CD.B.forEach(item => {
+                const isChecked = state.bonusState[item.name] || false; 
+                const html = `
+                    <div class="flex justify-between items-center p-3 bg-white rounded-lg shadow">
+                        <label class="flex items-center space-x-3 cursor-pointer flex-grow">
+                            <input type="checkbox" id="bonus-check-${item.name}" class="h-5 w-5 text-green-600 rounded border-gray-300 focus:ring-green-500" onchange="toggleBonus('${item.name}',this.checked)" ${isChecked ? 'checked' : ''}>
+                            <p class="font-medium text-gray-700">${item.name}(${item.points} Pt)</p>
+                        </label>
+                    </div>
+                `;
+                ELEMENTS.bonusList.insertAdjacentHTML('beforeend', html);
+            });
+            showScreen('staff-screen');
+        };
+        
+        // --- 2段階リセット処理の追加 ---
+        window.onResetClick = () => {
+            // モーダルを表示
+            ELEMENTS.resetModal.style.display = 'flex';
+        };
+
+        window.confirmReset = (isConfirmed) => {
+            // モーダルを非表示
+            ELEMENTS.resetModal.style.display = 'none';
+
+            if (isConfirmed) {
+                // リセット実行
+                if (state && state.timerInterval) clearInterval(state.timerInterval);
+                
+                localStorage.removeItem(STORAGE_KEY);
+                
+                const initialBonusState = CD.B.reduce((acc, item) => ({ ...acc, [item.name]: false }), {});
+                state = {
+                    clearedData: {}, fixedLevels: {}, currentMuseum: '', currentLevel: '', currentMultiplier: 0,
+                    timeLimitMs: 0, isRunning: false, startTime: 0, timerInterval: null, elapsedTime: 0,
+                    isPaused: false, staffTapCount: 0, bonusState: initialBonusState
+                };
+                showScreen('real-chute-registration');
+            }
+        };
+        // ------------------------------
+
+        window.resetGame = () => {
+            // 互換性のため残すが、スタッフ画面からは onResetClick を使用
+            window.confirmReset(true);
+        };
+
+        window.onload = () => {
+            const loadedState = loadState();
+            if (loadedState) {
+                state = loadedState;
+                // 実行中のタイマーがあれば停止（ロード時の安全対策）
+                if (state.timerInterval) {
+                     clearInterval(state.timerInterval);
+                     state.timerInterval = null;
+                     state.isRunning = false;
+                }
+                if (Object.keys(state.fixedLevels).length === CD.S.length) {
+                    showSelectionScreen();
+                } else {
+                    showScreen('real-chute-registration');
+                }
+            } else {
+                // 初回起動時やロード失敗時はリセットと同じ動作
+                window.resetGame();
+            }
+        };
+    </script>
+</body>
+</html>
