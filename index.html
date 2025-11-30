@@ -591,15 +591,16 @@
             }
         };
         if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js') // sw.jsがService Workerファイル
-      .then(registration => {
-        // 登録成功
-      })
-      .catch(error => {
-        // 登録失敗
-      });
-  });
+  window.addEventListener('load', () => {
+    // パスを修正しました
+    navigator.serviceWorker.register('/vol3_KaitouN_art/sw.js') 
+      .then(registration => {
+        // 登録成功
+      })
+      .catch(error => {
+        // 登録失敗
+      });
+  });
 }
     </script>
 </body>
