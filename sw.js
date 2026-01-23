@@ -1,34 +1,49 @@
-// sw.js の基本的な内容
-const CACHE_NAME = 'my-pwa-cache-v1';
+const CACHE_NAME = 'my-pwa-cache-v2'; // バージョンを上げて古いキャッシュを無効化
 const urlsToCache = [
-  './', // index.html
-  './index.html',
-  './manifest.json',
-  // 必要に応じて他のCSSやJSファイルも追加
+  './',
+  'index.html',
+  'manifest.json',
+  'icon.png'
 ];
 
-// Service Worker のインストール
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
-        console.log('Opened cache');
-        return cache.addAll(urlsToCache);
+        console.log('Caching resources');
+        // 1つでも失敗すると全体が失敗するため、個別にaddする方法に変更
+        return Promise.all(
+          urlsToCache.map(url => {
+            return cache.add(url).catch(err => console.error('Failed to cache:', url, err));
+          })
+        );
       })
   );
 });
 
-// リソースの取得 (Fetch)
 self.addEventListener('fetch', event => {
   event.respondWith(
     caches.match(event.request)
       .then(response => {
-        // キャッシュにあればそれを返す
-        if (response) {
-          return response;
-        }
-        // なければネットワークから取得
-        return fetch(event.request);
+        // キャッシュがあれば返す、なければネットワークから取得
+        return response || fetch(event.request);
+      }).catch(() => {
+        // ネットワークエラー時のフォールバック（任意）
       })
+  );
+});
+
+// 古いキャッシュを削除する処理を追加
+self.addEventListener('activate', event => {
+  event.waitUntil(
+    caches.keys().then(cacheNames => {
+      return Promise.all(
+        cacheNames.map(cache => {
+          if (cache !== CACHE_NAME) {
+            return caches.delete(cache);
+          }
+        })
+      );
+    })
   );
 });
