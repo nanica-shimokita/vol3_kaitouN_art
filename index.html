@@ -492,7 +492,7 @@
         };
 
         function showResultScreen(score, timeMs, museumName, levelName, isViewing, isSuccess = true, timeLimitMs) {
-            const timeLimitDisplay = formatTime(timeLimitMs).slice(0, 5); 
+            const timeLimitDisplay = formatTime(timeLimitMs).split('.')[0]; 
             const resultStatus = isSuccess ? 'クリア成功！' : 'クリア失敗';
             ELEMENTS.resultTitle.innerHTML = isViewing 
                 ? `${museumName}リザルト` 
