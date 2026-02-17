@@ -365,7 +365,7 @@
             ELEMENTS.timerDisplay.textContent = formatTime(0);
             
             const selectedLevelInfo = CD.L[state.currentLevel];
-            const timeLimit = formatTime(state.timeLimitMs).slice(0, 5); 
+            const timeLimit = formatTime(state.timeLimitMs).split('.')[0];
             const colors = CD.M[museumName];
 
             ELEMENTS.currentLevelDisplay.textContent = `${state.currentLevel}(${selectedLevelInfo.points}pt)`; 
